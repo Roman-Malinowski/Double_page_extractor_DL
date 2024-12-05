@@ -1,0 +1,7 @@
+data/images/*
+venv*
+__pycache__
+.git/
+.DS_Store
+*.swp
+.ipynb_checkpoints
