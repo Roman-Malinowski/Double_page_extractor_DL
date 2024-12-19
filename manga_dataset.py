@@ -137,24 +137,24 @@ class MangaPagesDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.df)
 
-    # TODO: if we merge two pages with a different column number,
-    # then we should not look at the middle for the junction
-    # TODO if __getitem__ gets a list?
     def __getitem__(self, idx):
+        """
+        The following was in the tuto but I think it is an error
+        as os.path.join cannot accept an iterator as an argument
         if torch.is_tensor(idx):
             idx = idx.tolist()
-
+        """
         img_name = os.path.join(self.root_dir, self.df.loc[idx, "File_name"])
 
         if self.df.loc[idx, "is_double_page"]:
             img = self.imread(img_name)
             width = img.shape[1]
-            min_left, max_left = (
-                self.crop.width + 1
-            ) // 2, width - 1 - self.crop.width // 2
-            self.crop(
-                img,
-            )
+            min_left = (self.crop.width + 1) // 2
+            max_left = width - 1 - self.crop.width // 2
+
+            # Cropping at random in the image
+            center = self.generator.integers(min_left, max_left + 1)
+            img = self.crop(img, center)
         else:
             # We create an image [File_name, pairing]
             # So that if img_X is paired with img_X+1
@@ -167,8 +167,8 @@ class MangaPagesDataset(torch.utils.data.Dataset):
             img_1 = self.imread(img_1_name)
 
             img = np.hstack((img_0, img_1))
-
-            junction = img_0.shape[1] / img.shape[1]
+            # Croping using the border border as center
+            img = self.crop(img, img_0.shape[1] - 1)
 
         sample = {"image": img, "label": int(self.df.loc[idx, "is_double_page"])}
 
