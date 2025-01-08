@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import torch
+from torch.utils.data import Dataset
 from skimage import io, transform, color
 
 
@@ -90,22 +91,7 @@ class CropVerticalStripe:  # pylint: disable=too-few-public-methods
         return img
 
 
-class ToTensor:  # pylint: disable=too-few-public-methods
-    """Convert ndarrays in sample to Tensors."""
-
-    def __call__(self, sample):
-        img, label = sample["image"], sample["label"]
-
-        # swap color axis because
-        # numpy image: H x W x C
-        # torch image: C x H x W
-        if len(img.shape) == 3:
-            img = img.transpose((2, 0, 1))
-
-        return {"image": torch.from_numpy(img), "label": torch.from_numpy(label)}
-
-
-class MangaPagesDataset(torch.utils.data.Dataset):
+class MangaPagesDataset(Dataset):
     """Manga Pages dataset."""
 
     def __init__(self, csv_file, root_dir, seed=42, sample_shape=(1200, 300)):
@@ -170,7 +156,10 @@ class MangaPagesDataset(torch.utils.data.Dataset):
             # Croping using the border border as center
             img = self.crop(img, img_0.shape[1] - 1)
 
-        sample = {"image": img, "label": int(self.df.loc[idx, "is_double_page"])}
+        sample = {
+            "image": torch.from_numpy(img),
+            "label": torch.tensor(self.df.loc[idx, "is_double_page"], dtype=torch.bool),
+        }
 
         return sample
 
